@@ -16,6 +16,7 @@ class Teacher extends Model
         return $this->belongsTo(User::class);
     }
 
+    // Many-to-many with Classes (pivot: teacher_class)
     public function classes()
     {
         return $this->belongsToMany(Classes::class, 'teacher_class', 'teacher_id', 'classes_id');

@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\MessageController;
 use App\Http\Controllers\Admin\AnnouncementController;
+use App\Http\Controllers\Teacher\TeacherDashboardController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -57,6 +58,15 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::resource('messages', MessageController::class)->only(['index', 'destroy']);
     Route::resource('announcements', AnnouncementController::class);
 });
+
+// Teacher routes (protected by auth + role:teacher)
+Route::middleware(['auth', 'verified', 'role:teacher'])
+    ->prefix('teacher')
+    ->name('teacher.')
+    ->group(function () {
+        Route::get('/dashboard', [TeacherDashboardController::class, 'index'])->name('dashboard');
+        // Other teacher resource routes will be added later (students, subjects, etc.)
+    });
 
 // Authentication routes (login, register, etc.)
 require __DIR__.'/auth.php';

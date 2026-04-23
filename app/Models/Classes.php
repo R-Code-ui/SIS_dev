@@ -18,9 +18,10 @@ class Classes extends Model
         return $this->belongsToMany(Teacher::class, 'teacher_class', 'classes_id', 'teacher_id');
     }
 
+    // 👇 Explicitly define the foreign key column
     public function students()
     {
-        return $this->hasMany(Student::class);
+        return $this->hasMany(Student::class, 'class_id');
     }
 
     public function subjects()
@@ -30,21 +31,21 @@ class Classes extends Model
 
     public function lessons()
     {
-        return $this->hasMany(Lesson::class);
+        return $this->hasMany(Lesson::class, 'class_id');
     }
 
     public function exams()
     {
-        return $this->hasMany(Exam::class);
+        return $this->hasMany(Exam::class, 'class_id');
     }
 
     public function assignments()
     {
-        return $this->hasMany(Assignment::class);
+        return $this->hasMany(Assignment::class, 'class_id');
     }
 
     public function attendances()
     {
-        return $this->hasMany(Attendance::class);
+        return $this->hasMany(Attendance::class, 'class_id');
     }
 }

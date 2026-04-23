@@ -93,13 +93,16 @@ class DashboardController extends Controller
 
     private function teacherDashboard()
     {
-        $teacher = Auth::user()->teacher;
-        $teacherId = $teacher->id;
+        $user = Auth::user();
+        $teacher = $user->teacher;
 
-        // Classes the teacher handles
+        if (!$teacher) {
+            abort(403, 'Teacher profile not found.');
+        }
+
+        $teacherId = $teacher->id;
         $classes = $teacher->classes()->withCount('students')->get();
 
-        // Upcoming exams for those classes
         $upcomingExams = Exam::whereIn('class_id', $classes->pluck('id'))
             ->with(['class', 'subject'])
             ->where('date', '>=', now())
@@ -107,7 +110,6 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        // Pending assignments (due soon)
         $pendingAssignments = Assignment::where('teacher_id', $teacherId)
             ->with(['class', 'subject'])
             ->where('due_date', '>=', now())
@@ -115,18 +117,29 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        // Recent lessons taught by this teacher
         $recentLessons = Lesson::where('teacher_id', $teacherId)
             ->with(['class', 'subject'])
             ->latest('date')
             ->take(5)
             ->get();
 
+        // 👇 ADD THESE STATS
+        $totalStudents = $classes->sum('students_count');
+        $totalClasses = $classes->count();
+        $totalUpcomingExams = $upcomingExams->count();
+        $totalPendingAssignments = $pendingAssignments->count();
+
         return inertia('Teacher/Dashboard', [
             'classes' => $classes,
             'upcomingExams' => $upcomingExams,
             'pendingAssignments' => $pendingAssignments,
             'recentLessons' => $recentLessons,
+            'stats' => [
+                'totalStudents' => $totalStudents,
+                'totalClasses' => $totalClasses,
+                'upcomingExams' => $totalUpcomingExams,
+                'pendingAssignments' => $totalPendingAssignments,
+            ],
         ]);
     }
 
