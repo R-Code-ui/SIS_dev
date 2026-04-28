@@ -6,9 +6,29 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import Modal from '@/Components/Modal';
 
-export default function Index({ guardians, flash }) {
+export default function Index({ guardians, occupations, filters = {} }) {
     const [deleteModal, setDeleteModal] = useState(false);
     const [selectedGuardian, setSelectedGuardian] = useState(null);
+
+    // Filter states
+    const [search, setSearch] = useState(filters.search || '');
+    const [occupation, setOccupation] = useState(filters.occupation || '');
+    const [sort, setSort] = useState(filters.sort || 'latest');
+
+    const applyFilters = () => {
+        router.get(route('admin.guardians.index'), {
+            search,
+            occupation,
+            sort,
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    const handleSearchKeyDown = (e) => {
+        if (e.key === 'Enter') applyFilters();
+    };
 
     const columns = [
         { key: 'name', label: 'Name', render: (item) => item.user?.name },
@@ -33,7 +53,6 @@ export default function Index({ guardians, flash }) {
 
     const confirmDelete = () => {
         if (!selectedGuardian) return;
-
         router.delete(route('admin.guardians.destroy', selectedGuardian.id), {
             onSuccess: () => {
                 setDeleteModal(false);
@@ -42,12 +61,18 @@ export default function Index({ guardians, flash }) {
         });
     };
 
+    // Safe data extraction
+    const guardiansData = Array.isArray(guardians?.data) ? guardians.data : [];
+    const links = Array.isArray(guardians?.links) ? guardians.links : [];
+    const occupationsList = Array.isArray(occupations) ? occupations : [];
+
     return (
         <AuthenticatedLayout header="Guardians Management">
             <Head title="Guardians" />
 
             <div className="py-6">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    {/* Header */}
                     <div className="mb-4 flex justify-between items-center">
                         <h1 className="text-2xl font-semibold text-gray-900">Guardians</h1>
                         <Link href={route('admin.guardians.create')}>
@@ -55,20 +80,78 @@ export default function Index({ guardians, flash }) {
                         </Link>
                     </div>
 
-                    {flash?.success && <FlashMessage message={flash.success} type="success" />}
-                    {flash?.error && <FlashMessage message={flash.error} type="error" />}
+                    {/* Flash Messages */}
+                    {guardians?.flash?.success && <FlashMessage message={guardians.flash.success} type="success" />}
+                    {guardians?.flash?.error && <FlashMessage message={guardians.flash.error} type="error" />}
 
+                    {/* Filter Bar */}
+                    <div className="mb-4 flex flex-wrap gap-4 items-end bg-white p-4 rounded-lg shadow">
+                        <div className="flex-1 min-w-[200px]">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                            <input
+                                type="text"
+                                placeholder="Name, email, phone or occupation..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                onKeyDown={handleSearchKeyDown}
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                            />
+                        </div>
+                        <div className="w-48">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Occupation</label>
+                            <select
+                                value={occupation}
+                                onChange={(e) => {
+                                    setOccupation(e.target.value);
+                                    setTimeout(applyFilters, 0);
+                                }}
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                            >
+                                <option value="">All Occupations</option>
+                                {occupationsList.map((occ) => (
+                                    <option key={occ} value={occ}>{occ}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="w-64">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                            <select
+                                value={sort}
+                                onChange={(e) => {
+                                    setSort(e.target.value);
+                                    setTimeout(applyFilters, 0);
+                                }}
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                            >
+                                <option value="latest">Latest First</option>
+                                <option value="name_asc">Name (A-Z)</option>
+                                <option value="name_desc">Name (Z-A)</option>
+                                <option value="email_asc">Email (A-Z)</option>
+                                <option value="email_desc">Email (Z-A)</option>
+                                <option value="occupation_asc">Occupation (A-Z)</option>
+                                <option value="occupation_desc">Occupation (Z-A)</option>
+                                <option value="students_asc">Linked Students (Lowest first)</option>
+                                <option value="students_desc">Linked Students (Highest first)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <Button variant="primary" onClick={applyFilters}>Apply Filters</Button>
+                        </div>
+                    </div>
+
+                    {/* Data Table */}
                     <DataTable
                         columns={columns}
-                        data={guardians.data}
+                        data={guardiansData}
                         actions={true}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                     />
 
-                    {guardians.links && guardians.links.length > 3 && (
+                    {/* Pagination */}
+                    {links.length > 3 && (
                         <div className="mt-6 flex justify-center flex-wrap">
-                            {guardians.links.map((link, idx) => (
+                            {links.map((link, idx) => (
                                 <span key={idx}>
                                     {link.url ? (
                                         <Link
@@ -93,6 +176,7 @@ export default function Index({ guardians, flash }) {
                 </div>
             </div>
 
+            {/* Delete Modal */}
             <Modal show={deleteModal} onClose={() => setDeleteModal(false)} maxWidth="sm">
                 <div className="p-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>

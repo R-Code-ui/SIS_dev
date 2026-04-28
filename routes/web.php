@@ -16,6 +16,25 @@ use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\MessageController;
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Teacher\TeacherDashboardController;
+use App\Http\Controllers\Teacher\StudentController as TeacherStudentController;
+use App\Http\Controllers\Teacher\SubjectController as TeacherSubjectController;
+use App\Http\Controllers\Teacher\ClassController as TeacherClassController;
+use App\Http\Controllers\Teacher\LessonController as TeacherLessonController;
+use App\Http\Controllers\Teacher\ExamController as TeacherExamController;
+use App\Http\Controllers\Teacher\AssignmentController as TeacherAssignmentController;
+use App\Http\Controllers\Teacher\ResultController as TeacherResultController;
+use App\Http\Controllers\Teacher\AttendanceController as TeacherAttendanceController;
+use App\Http\Controllers\Teacher\EventController as TeacherEventController;
+use App\Http\Controllers\Teacher\MessageController as TeacherMessageController;
+use App\Http\Controllers\Teacher\AnnouncementController as TeacherAnnouncementController;
+use App\Http\Controllers\Student\StudentDashboardController;
+use App\Http\Controllers\Student\AssignmentController as StudentAssignmentController;
+use App\Http\Controllers\Student\ResultController as StudentResultController;
+use App\Http\Controllers\Student\AttendanceController as StudentAttendanceController;
+use App\Http\Controllers\Student\EventController as StudentEventController;
+use App\Http\Controllers\Student\MessageController as StudentMessageController;
+use App\Http\Controllers\Student\AnnouncementController as StudentAnnouncementController;
+use App\Http\Controllers\Student\ClassController as StudentClassController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -65,7 +84,35 @@ Route::middleware(['auth', 'verified', 'role:teacher'])
     ->name('teacher.')
     ->group(function () {
         Route::get('/dashboard', [TeacherDashboardController::class, 'index'])->name('dashboard');
-        // Other teacher resource routes will be added later (students, subjects, etc.)
+        Route::resource('students', TeacherStudentController::class)->only(['index']);
+        Route::resource('subjects', TeacherSubjectController::class)->only(['index']);
+        Route::resource('classes', TeacherClassController::class)->only(['index']);
+        Route::resource('lessons', TeacherLessonController::class);
+        Route::resource('exams', TeacherExamController::class);
+        Route::resource('assignments', TeacherAssignmentController::class);
+        Route::resource('results', TeacherResultController::class);
+        Route::resource('attendances', TeacherAttendanceController::class);
+        Route::resource('events', TeacherEventController::class)->only(['index', 'show']);
+        Route::resource('messages', TeacherMessageController::class);
+        Route::resource('announcements', TeacherAnnouncementController::class)->only(['index', 'show']);
+    });
+
+// Student routes (protected by auth + role:student)
+Route::middleware(['auth', 'verified', 'role:student'])
+    ->prefix('student')
+    ->name('student.')
+    ->group(function () {
+        // Dashboard
+        Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
+
+        // Student modules (to be implemented)
+        // Route::resource('assignments', StudentAssignmentController::class)->only(['index', 'show', 'store']);
+        // Route::resource('results', StudentResultController::class)->only(['index']);
+        // Route::resource('attendances', StudentAttendanceController::class)->only(['index']);
+        // Route::resource('events', StudentEventController::class)->only(['index']);
+        // Route::resource('messages', StudentMessageController::class);
+        // Route::resource('announcements', StudentAnnouncementController::class)->only(['index', 'show']);
+        // Route::resource('classes', StudentClassController::class)->only(['index']);
     });
 
 // Authentication routes (login, register, etc.)

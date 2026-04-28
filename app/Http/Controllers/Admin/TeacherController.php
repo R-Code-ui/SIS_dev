@@ -10,11 +10,68 @@ use Illuminate\Support\Facades\Gate;
 
 class TeacherController extends AdminController
 {
-    public function index()
+    public function index(Request $request)
     {
         Gate::authorize('viewAny', Teacher::class);
-        $teachers = Teacher::with('user')->paginate(10);
-        return inertia('Admin/Teachers/Index', ['teachers' => $teachers]);
+
+        $query = Teacher::with('user');
+
+        // Search by name or email or employee_id
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('employee_id', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($q2) use ($search) {
+                      $q2->where('name', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filter by department
+        if ($request->filled('department')) {
+            $query->where('department', $request->department);
+        }
+
+        // Sorting
+        $sort = $request->get('sort', 'latest');
+        switch ($sort) {
+            case 'name_asc':
+                $query->join('users', 'teachers.user_id', '=', 'users.id')
+                      ->orderBy('users.name', 'asc')
+                      ->select('teachers.*');
+                break;
+            case 'name_desc':
+                $query->join('users', 'teachers.user_id', '=', 'users.id')
+                      ->orderBy('users.name', 'desc')
+                      ->select('teachers.*');
+                break;
+            case 'employee_asc':
+                $query->orderBy('employee_id', 'asc');
+                break;
+            case 'employee_desc':
+                $query->orderBy('employee_id', 'desc');
+                break;
+            case 'latest':
+            default:
+                $query->latest('teachers.created_at'); // newest first
+                break;
+        }
+
+        $teachers = $query->paginate(10)->withQueryString();
+
+        // Get unique departments for filter dropdown
+        $departments = Teacher::select('department')->distinct()->whereNotNull('department')->pluck('department');
+
+        return inertia('Admin/Teachers/Index', [
+            'teachers' => $teachers,
+            'departments' => $departments,
+            'filters' => [
+                'search' => $request->search ?? '',
+                'department' => $request->department ?? '',
+                'sort' => $request->sort ?? 'latest',
+            ],
+        ]);
     }
 
     public function create()

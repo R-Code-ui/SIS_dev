@@ -8,11 +8,57 @@ use Illuminate\Support\Facades\Gate;
 
 class SubjectController extends AdminController
 {
-    public function index()
+    public function index(Request $request)
     {
         Gate::authorize('viewAny', Subject::class);
-        $subjects = Subject::paginate(10);
-        return inertia('Admin/Subjects/Index', ['subjects' => $subjects]);
+
+        $query = Subject::query();
+
+        // Search by name or code
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('code', 'like', "%{$search}%");
+            });
+        }
+
+        // Sorting
+        $sort = $request->get('sort', 'latest');
+        switch ($sort) {
+            case 'name_asc':
+                $query->orderBy('name', 'asc');
+                break;
+            case 'name_desc':
+                $query->orderBy('name', 'desc');
+                break;
+            case 'code_asc':
+                $query->orderBy('code', 'asc');
+                break;
+            case 'code_desc':
+                $query->orderBy('code', 'desc');
+                break;
+            case 'credits_asc':
+                $query->orderBy('credits', 'asc');
+                break;
+            case 'credits_desc':
+                $query->orderBy('credits', 'desc');
+                break;
+            case 'latest':
+            default:
+                $query->latest('subjects.created_at'); // newest first
+                break;
+        }
+
+        $subjects = $query->paginate(10)->withQueryString();
+
+        return inertia('Admin/Subjects/Index', [
+            'subjects' => $subjects,
+            'filters' => [
+                'search' => $request->search ?? '',
+                'sort' => $request->sort ?? 'latest',
+            ],
+        ]);
     }
 
     public function create()

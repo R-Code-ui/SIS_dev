@@ -3,17 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Routing\Controllers\HasMiddleware;
-use Illuminate\Routing\Controllers\Middleware;
 
-class AdminController extends Controller implements HasMiddleware
+class AdminController extends Controller
 {
-    public static function middleware(): array
+    public function __construct()
     {
-        return [
-            new Middleware('auth'),
-            new Middleware('verified'),
-            new Middleware('role:admin'),
-        ];
+        $this->middleware(['auth', 'verified']);
+        $this->middleware('role:admin');
     }
 }

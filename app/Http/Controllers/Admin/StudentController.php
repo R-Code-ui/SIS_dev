@@ -11,11 +11,75 @@ use Illuminate\Support\Facades\Gate;
 
 class StudentController extends AdminController
 {
-    public function index()
+    public function index(Request $request)
     {
         Gate::authorize('viewAny', Student::class);
-        $students = Student::with(['user', 'class'])->paginate(10);
-        return inertia('Admin/Students/Index', ['students' => $students]);
+
+        $query = Student::with(['user', 'class']);
+
+        // Search by name, email, or admission number
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('admission_no', 'like', "%{$search}%")
+                  ->orWhere('roll_number', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($q2) use ($search) {
+                      $q2->where('name', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filter by class
+        if ($request->filled('class_id')) {
+            $query->where('class_id', $request->class_id);
+        }
+
+        // Sorting
+        $sort = $request->get('sort', 'latest');
+        switch ($sort) {
+            case 'name_asc':
+                $query->join('users', 'students.user_id', '=', 'users.id')
+                      ->orderBy('users.name', 'asc')
+                      ->select('students.*');
+                break;
+            case 'name_desc':
+                $query->join('users', 'students.user_id', '=', 'users.id')
+                      ->orderBy('users.name', 'desc')
+                      ->select('students.*');
+                break;
+            case 'admission_asc':
+                $query->orderBy('admission_no', 'asc');
+                break;
+            case 'admission_desc':
+                $query->orderBy('admission_no', 'desc');
+                break;
+            case 'roll_asc':
+                $query->orderBy('roll_number', 'asc');
+                break;
+            case 'roll_desc':
+                $query->orderBy('roll_number', 'desc');
+                break;
+            case 'latest':
+            default:
+                $query->latest('students.created_at'); // newest first
+                break;
+        }
+
+        $students = $query->paginate(10)->withQueryString();
+
+        // Get all classes for filter dropdown
+        $classes = Classes::all();
+
+        return inertia('Admin/Students/Index', [
+            'students' => $students,
+            'classes' => $classes,
+            'filters' => [
+                'search' => $request->search ?? '',
+                'class_id' => $request->class_id ?? '',
+                'sort' => $request->sort ?? 'latest',
+            ],
+        ]);
     }
 
     public function create()

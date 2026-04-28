@@ -6,9 +6,27 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import Modal from '@/Components/Modal';
 
-export default function Index({ subjects, flash }) {
+export default function Index({ subjects, filters = {} }) {
     const [deleteModal, setDeleteModal] = useState(false);
     const [selectedSubject, setSelectedSubject] = useState(null);
+
+    // Filter states
+    const [search, setSearch] = useState(filters.search || '');
+    const [sort, setSort] = useState(filters.sort || 'latest');
+
+    const applyFilters = () => {
+        router.get(route('admin.subjects.index'), {
+            search,
+            sort,
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    const handleSearchKeyDown = (e) => {
+        if (e.key === 'Enter') applyFilters();
+    };
 
     const columns = [
         { key: 'code', label: 'Subject Code' },
@@ -28,7 +46,6 @@ export default function Index({ subjects, flash }) {
 
     const confirmDelete = () => {
         if (!selectedSubject) return;
-
         router.delete(route('admin.subjects.destroy', selectedSubject.id), {
             onSuccess: () => {
                 setDeleteModal(false);
@@ -37,12 +54,17 @@ export default function Index({ subjects, flash }) {
         });
     };
 
+    // Safe data extraction
+    const subjectsData = Array.isArray(subjects?.data) ? subjects.data : [];
+    const links = Array.isArray(subjects?.links) ? subjects.links : [];
+
     return (
         <AuthenticatedLayout header="Subjects Management">
             <Head title="Subjects" />
 
             <div className="py-6">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    {/* Header */}
                     <div className="mb-4 flex justify-between items-center">
                         <h1 className="text-2xl font-semibold text-gray-900">Subjects</h1>
                         <Link href={route('admin.subjects.create')}>
@@ -50,20 +72,60 @@ export default function Index({ subjects, flash }) {
                         </Link>
                     </div>
 
-                    {flash?.success && <FlashMessage message={flash.success} type="success" />}
-                    {flash?.error && <FlashMessage message={flash.error} type="error" />}
+                    {/* Flash Messages */}
+                    {subjects?.flash?.success && <FlashMessage message={subjects.flash.success} type="success" />}
+                    {subjects?.flash?.error && <FlashMessage message={subjects.flash.error} type="error" />}
 
+                    {/* Filter Bar */}
+                    <div className="mb-4 flex flex-wrap gap-4 items-end bg-white p-4 rounded-lg shadow">
+                        <div className="flex-1 min-w-[200px]">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                            <input
+                                type="text"
+                                placeholder="Subject name or code..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                onKeyDown={handleSearchKeyDown}
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                            />
+                        </div>
+                        <div className="w-56">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                            <select
+                                value={sort}
+                                onChange={(e) => {
+                                    setSort(e.target.value);
+                                    setTimeout(applyFilters, 0);
+                                }}
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                            >
+                                <option value="latest">Latest First</option>
+                                <option value="name_asc">Name (A-Z)</option>
+                                <option value="name_desc">Name (Z-A)</option>
+                                <option value="code_asc">Code (A-Z)</option>
+                                <option value="code_desc">Code (Z-A)</option>
+                                <option value="credits_asc">Credits (Lowest)</option>
+                                <option value="credits_desc">Credits (Highest)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <Button variant="primary" onClick={applyFilters}>Apply Filters</Button>
+                        </div>
+                    </div>
+
+                    {/* Data Table */}
                     <DataTable
                         columns={columns}
-                        data={subjects.data}
+                        data={subjectsData}
                         actions={true}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                     />
 
-                    {subjects.links && subjects.links.length > 3 && (
+                    {/* Pagination */}
+                    {links.length > 3 && (
                         <div className="mt-6 flex justify-center flex-wrap">
-                            {subjects.links.map((link, idx) => (
+                            {links.map((link, idx) => (
                                 <span key={idx}>
                                     {link.url ? (
                                         <Link
@@ -88,6 +150,7 @@ export default function Index({ subjects, flash }) {
                 </div>
             </div>
 
+            {/* Delete Modal */}
             <Modal show={deleteModal} onClose={() => setDeleteModal(false)} maxWidth="sm">
                 <div className="p-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>

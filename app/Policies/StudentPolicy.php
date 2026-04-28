@@ -9,12 +9,18 @@ class StudentPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('admin');
+        return $user->hasRole('admin') || $user->hasRole('teacher');
     }
 
     public function view(User $user, Student $student): bool
     {
-        return $user->hasRole('admin');
+        if ($user->hasRole('admin')) return true;
+        if ($user->hasRole('teacher')) {
+            $teacher = $user->teacher;
+            // Check if the student's class is among the teacher's classes
+            return $teacher && in_array($student->class_id, $teacher->getMyClassIds());
+        }
+        return false;
     }
 
     public function create(User $user): bool

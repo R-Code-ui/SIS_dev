@@ -1,99 +1,71 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import TeacherLayout from '@/Layouts/TeacherLayout';
 import DataTable from '@/Components/DataTable';
 import Button from '@/Components/Button';
-import FlashMessage from '@/Components/FlashMessage';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-import Modal from '@/Components/Modal';
 
-export default function Index({ students, classes, filters = {} }) {
-    const [deleteModal, setDeleteModal] = useState(false);
-    const [selectedStudent, setSelectedStudent] = useState(null);
+export default function Index({ students, classes, filters }) {
+    // ✅ SAFE FILTERS
+    const safeFilters = (filters && typeof filters === 'object') ? filters : {};
 
-    // Filter states
-    const [search, setSearch] = useState(filters.search || '');
-    const [classId, setClassId] = useState(filters.class_id || '');
-    const [sort, setSort] = useState(filters.sort || 'latest');
+    const [search, setSearch] = useState(safeFilters.search || '');
+    const [classId, setClassId] = useState(safeFilters.class_id || '');
+    const [sortValue, setSortValue] = useState(safeFilters.sort || 'name_asc');
 
+    // ✅ APPLY FILTERS
     const applyFilters = () => {
-        router.get(route('admin.students.index'), {
+        router.get(route('teacher.students.index'), {
             search,
             class_id: classId,
-            sort,
+            sort: sortValue,
         }, {
             preserveState: true,
             preserveScroll: true,
         });
     };
 
-    const handleSearchKeyDown = (e) => {
-        if (e.key === 'Enter') applyFilters();
-    };
-
-    const columns = [
-        { key: 'admission_no', label: 'Admission No' },
-        { key: 'name', label: 'Name', render: (item) => item.user?.name },
-        { key: 'email', label: 'Email', render: (item) => item.user?.email },
-        { key: 'roll_number', label: 'Roll No' },
-        { key: 'class', label: 'Class', render: (item) => item.class?.name || 'Not Assigned' },
-    ];
-
-    const handleEdit = (student) => {
-        router.visit(route('admin.students.edit', student.id));
-    };
-
-    const handleDelete = (student) => {
-        setSelectedStudent(student);
-        setDeleteModal(true);
-    };
-
-    const confirmDelete = () => {
-        if (!selectedStudent) return;
-        router.delete(route('admin.students.destroy', selectedStudent.id), {
-            onSuccess: () => {
-                setDeleteModal(false);
-                setSelectedStudent(null);
-            }
-        });
-    };
-
-    // Safe data extraction
+    // ✅ SAFE DATA
     const studentsData = Array.isArray(students?.data) ? students.data : [];
     const links = Array.isArray(students?.links) ? students.links : [];
     const classesList = Array.isArray(classes) ? classes : [];
 
+    // ✅ TABLE COLUMNS
+    const columns = [
+        { key: 'admission_no', label: 'Admission No' },
+        { key: 'name', label: 'Name', render: (item) => item?.user?.name || '-' },
+        { key: 'email', label: 'Email', render: (item) => item?.user?.email || '-' },
+        { key: 'roll_number', label: 'Roll No' },
+        { key: 'class', label: 'Class', render: (item) => item?.class?.name || 'Not Assigned' },
+    ];
+
     return (
-        <AuthenticatedLayout header="Students Management">
+        <TeacherLayout header="Students">
             <Head title="Students" />
 
             <div className="py-6">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-                    {/* Header */}
-                    <div className="mb-4 flex justify-between items-center">
-                        <h1 className="text-2xl font-semibold text-gray-900">Students</h1>
-                        <Link href={route('admin.students.create')}>
-                            <Button variant="primary">Add New Student</Button>
-                        </Link>
+                    <div className="mb-4">
+                        <h1 className="text-2xl font-semibold text-gray-900">My Students</h1>
                     </div>
 
-                    {/* Flash Messages */}
-                    {students?.flash?.success && <FlashMessage message={students.flash.success} type="success" />}
-                    {students?.flash?.error && <FlashMessage message={students.flash.error} type="error" />}
-
-                    {/* Filter Bar */}
+                    {/* ✅ FILTER BAR */}
                     <div className="mb-4 flex flex-wrap gap-4 items-end bg-white p-4 rounded-lg shadow">
+
+                        {/* SEARCH */}
                         <div className="flex-1 min-w-[200px]">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
                             <input
                                 type="text"
-                                placeholder="Name, email, admission or roll number..."
+                                placeholder="Name or Admission No..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                onKeyDown={handleSearchKeyDown}
+                                onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
                                 className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                             />
                         </div>
+
+                        {/* ✅ CLASS FILTER (FIXED) */}
                         <div className="w-48">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
                             <select
@@ -106,50 +78,53 @@ export default function Index({ students, classes, filters = {} }) {
                             >
                                 <option value="">All Classes</option>
                                 {classesList.map((cls) => (
-                                    <option key={cls.id} value={cls.id}>{cls.name}</option>
+                                    <option key={cls.id} value={cls.id}>
+                                        {cls.name}
+                                    </option>
                                 ))}
                             </select>
                         </div>
+
+                        {/* ✅ SORT FILTER (FIXED) */}
                         <div className="w-56">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
                             <select
-                                value={sort}
+                                value={sortValue}
                                 onChange={(e) => {
-                                    setSort(e.target.value);
+                                    setSortValue(e.target.value);
                                     setTimeout(applyFilters, 0);
                                 }}
                                 className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                             >
-                                <option value="latest">Latest First</option>
                                 <option value="name_asc">Name (A-Z)</option>
                                 <option value="name_desc">Name (Z-A)</option>
                                 <option value="admission_asc">Admission No (Asc)</option>
                                 <option value="admission_desc">Admission No (Desc)</option>
-                                <option value="roll_asc">Roll No (Asc)</option>
-                                <option value="roll_desc">Roll No (Desc)</option>
                             </select>
                         </div>
+
+                        {/* APPLY BUTTON */}
                         <div>
-                            <Button variant="primary" onClick={applyFilters}>Apply Filters</Button>
+                            <Button variant="primary" onClick={applyFilters}>
+                                Apply Filters
+                            </Button>
                         </div>
                     </div>
 
-                    {/* Data Table */}
+                    {/* ✅ TABLE */}
                     <DataTable
                         columns={columns}
                         data={studentsData}
-                        actions={true}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
+                        actions={false}
                     />
 
-                    {/* Pagination */}
+                    {/* ✅ PAGINATION */}
                     {links.length > 3 && (
                         <div className="mt-6 flex justify-center flex-wrap">
                             {links.map((link, idx) => (
                                 <span key={idx}>
                                     {link.url ? (
-                                        <Link
+                                        <a
                                             href={link.url}
                                             className={`px-3 py-1 mx-1 rounded text-sm ${
                                                 link.active
@@ -157,6 +132,13 @@ export default function Index({ students, classes, filters = {} }) {
                                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                             }`}
                                             dangerouslySetInnerHTML={{ __html: link.label }}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                router.get(link.url, {}, {
+                                                    preserveState: true,
+                                                    preserveScroll: true
+                                                });
+                                            }}
                                         />
                                     ) : (
                                         <span
@@ -168,23 +150,9 @@ export default function Index({ students, classes, filters = {} }) {
                             ))}
                         </div>
                     )}
+
                 </div>
             </div>
-
-            {/* Delete Modal */}
-            <Modal show={deleteModal} onClose={() => setDeleteModal(false)} maxWidth="sm">
-                <div className="p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>
-                    <p className="text-gray-700">
-                        Are you sure you want to delete student{' '}
-                        <strong>{selectedStudent?.user?.name}</strong>?
-                    </p>
-                    <div className="mt-4 flex justify-end space-x-2">
-                        <Button variant="secondary" onClick={() => setDeleteModal(false)}>Cancel</Button>
-                        <Button variant="danger" onClick={confirmDelete}>Delete</Button>
-                    </div>
-                </div>
-            </Modal>
-        </AuthenticatedLayout>
+        </TeacherLayout>
     );
 }

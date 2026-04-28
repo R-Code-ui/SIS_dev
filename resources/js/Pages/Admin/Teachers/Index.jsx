@@ -6,9 +6,31 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import Modal from '@/Components/Modal';
 
-export default function Index({ teachers, flash }) {
+export default function Index({ teachers, departments, filters = {} }) {
     const [deleteModal, setDeleteModal] = useState(false);
     const [selectedTeacher, setSelectedTeacher] = useState(null);
+
+    // Filters state
+    const [search, setSearch] = useState(filters.search || '');
+    const [department, setDepartment] = useState(filters.department || '');
+    const [sort, setSort] = useState(filters.sort || 'latest');
+
+    // Apply filters (reload page with query string)
+    const applyFilters = () => {
+        router.get(route('admin.teachers.index'), {
+            search,
+            department,
+            sort,
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    // Handle enter key in search
+    const handleSearchKeyDown = (e) => {
+        if (e.key === 'Enter') applyFilters();
+    };
 
     const columns = [
         { key: 'employee_id', label: 'Employee ID' },
@@ -29,7 +51,6 @@ export default function Index({ teachers, flash }) {
 
     const confirmDelete = () => {
         if (!selectedTeacher) return;
-
         router.delete(route('admin.teachers.destroy', selectedTeacher.id), {
             onSuccess: () => {
                 setDeleteModal(false);
@@ -38,13 +59,16 @@ export default function Index({ teachers, flash }) {
         });
     };
 
+    // Safe data extraction
+    const teachersData = Array.isArray(teachers?.data) ? teachers.data : [];
+    const links = Array.isArray(teachers?.links) ? teachers.links : [];
+
     return (
         <AuthenticatedLayout header="Teachers Management">
             <Head title="Teachers" />
 
             <div className="py-6">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-
                     {/* Header */}
                     <div className="mb-4 flex justify-between items-center">
                         <h1 className="text-2xl font-semibold text-gray-900">Teachers</h1>
@@ -54,23 +78,73 @@ export default function Index({ teachers, flash }) {
                     </div>
 
                     {/* Flash Messages */}
-                    {flash?.success && <FlashMessage message={flash.success} type="success" />}
-                    {flash?.error && <FlashMessage message={flash.error} type="error" />}
+                    {teachers?.flash?.success && <FlashMessage message={teachers.flash.success} type="success" />}
+                    {teachers?.flash?.error && <FlashMessage message={teachers.flash.error} type="error" />}
+
+                    {/* Filters Bar */}
+                    <div className="mb-4 flex flex-wrap gap-4 items-end bg-white p-4 rounded-lg shadow">
+                        <div className="flex-1 min-w-[200px]">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                            <input
+                                type="text"
+                                placeholder="Name, email or employee ID..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                onKeyDown={handleSearchKeyDown}
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                            />
+                        </div>
+                        <div className="w-48">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                            <select
+                                value={department}
+                                onChange={(e) => {
+                                    setDepartment(e.target.value);
+                                    setTimeout(applyFilters, 0);
+                                }}
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                            >
+                                <option value="">All Departments</option>
+                                {departments?.map((dept) => (
+                                    <option key={dept} value={dept}>{dept}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="w-56">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                            <select
+                                value={sort}
+                                onChange={(e) => {
+                                    setSort(e.target.value);
+                                    setTimeout(applyFilters, 0);
+                                }}
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                            >
+                                <option value="latest">Latest First</option>
+                                <option value="name_asc">Name (A-Z)</option>
+                                <option value="name_desc">Name (Z-A)</option>
+                                <option value="employee_asc">Employee ID (Asc)</option>
+                                <option value="employee_desc">Employee ID (Desc)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <Button variant="primary" onClick={applyFilters}>Apply Filters</Button>
+                        </div>
+                    </div>
 
                     {/* Data Table */}
                     <DataTable
                         columns={columns}
-                        data={teachers.data}
+                        data={teachersData}
                         actions={true}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                     />
 
-                    {/* ✅ FIXED Pagination */}
-                    {teachers.links && teachers.links.length > 3 && (
+                    {/* Pagination */}
+                    {links.length > 3 && (
                         <div className="mt-6 flex justify-center flex-wrap">
-
-                            {teachers.links.map((link, idx) => (
+                            {links.map((link, idx) => (
                                 <span key={idx}>
                                     {link.url ? (
                                         <Link
@@ -90,7 +164,6 @@ export default function Index({ teachers, flash }) {
                                     )}
                                 </span>
                             ))}
-
                         </div>
                     )}
                 </div>
