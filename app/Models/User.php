@@ -32,9 +32,21 @@ class User extends Authenticatable
         ];
     }
 
-    // 👇 Add this relationship
+    // Teacher relationship (already exists)
     public function teacher()
     {
         return $this->hasOne(Teacher::class);
+    }
+
+    // 👇 ADD THIS: Student relationship
+    public function student()
+    {
+        return $this->hasOne(Student::class);
+    }
+
+    // Optional: Guardian relationship (if needed)
+    public function guardian()
+    {
+        return $this->hasOne(Guardian::class);
     }
 }

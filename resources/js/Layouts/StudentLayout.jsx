@@ -9,9 +9,10 @@ export default function StudentLayout({ header, children }) {
     const user = usePage().props.auth.user;
     const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
 
-    // Student-only navigation (8 modules)
+    // Student navigation – only Dashboard is available now
     const navigation = [
         { name: 'Dashboard', href: route('student.dashboard'), current: route().current('student.dashboard') },
+        // Other modules will be uncommented after their controllers and routes are created
         { name: 'Assignments', href: route('student.assignments.index'), current: route().current('student.assignments.*') },
         { name: 'Results', href: route('student.results.index'), current: route().current('student.results.*') },
         { name: 'Attendance', href: route('student.attendances.index'), current: route().current('student.attendances.*') },
@@ -52,7 +53,7 @@ export default function StudentLayout({ header, children }) {
                 </div>
             </aside>
 
-            {/* Main content area */}
+            {/* Main content area (same as before) */}
             <div className="flex flex-1 flex-col h-full overflow-hidden">
                 <header className="flex h-16 shrink-0 items-center justify-between border-b bg-white px-4 shadow-sm sm:px-6 lg:px-8 z-10">
                     <div className="flex items-center sm:hidden">

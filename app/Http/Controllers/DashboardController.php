@@ -29,9 +29,12 @@ class DashboardController extends Controller
             return $this->teacherDashboard();
         }
         if ($user->hasRole('student')) {
-            return $this->studentDashboard();
+            // Redirect to the dedicated student dashboard
+            return redirect()->route('student.dashboard');
         }
         if ($user->hasRole('guardian')) {
+            // Optional: redirect to a dedicated guardian dashboard if you create one later
+            // For now, stay with the parent dashboard inside this controller
             return $this->parentDashboard();
         }
 
@@ -145,37 +148,46 @@ class DashboardController extends Controller
 
     private function studentDashboard()
     {
-        $student = Auth::user()->student;
+        $user = Auth::user();
+        $student = $user->student;
+
+        if (!$student) {
+            // Student profile missing – show error or fallback
+            return inertia('Student/Dashboard', [
+                'error' => 'Your student profile is not set up. Please contact the administrator.',
+                'upcomingExams' => [],
+                'pendingAssignments' => [],
+                'attendances' => [],
+                'results' => [],
+                'events' => [],
+            ]);
+        }
+
         $classId = $student->class_id;
 
-        // Upcoming exams for student's class
         $upcomingExams = Exam::where('class_id', $classId)
             ->with('subject')
             ->where('date', '>=', now())
             ->orderBy('date')
             ->get();
 
-        // Pending assignments for student's class
         $pendingAssignments = Assignment::where('class_id', $classId)
             ->with(['subject', 'teacher.user'])
             ->where('due_date', '>=', now())
             ->orderBy('due_date')
             ->get();
 
-        // Attendance records (last 30 days)
         $attendances = Attendance::where('student_id', $student->id)
             ->where('date', '>=', now()->subDays(30))
             ->orderBy('date', 'desc')
             ->get();
 
-        // Results (latest 5)
         $results = Result::where('student_id', $student->id)
             ->with(['exam', 'subject'])
             ->latest()
             ->take(5)
             ->get();
 
-        // Upcoming events
         $events = Event::where('start_date', '>=', now())
             ->orderBy('start_date')
             ->take(5)
@@ -192,7 +204,17 @@ class DashboardController extends Controller
 
     private function parentDashboard()
     {
-        $guardian = Auth::user()->guardian;
+        $user = Auth::user();
+        $guardian = $user->guardian;
+
+        if (!$guardian) {
+            return inertia('Parent/Dashboard', [
+                'error' => 'Your parent/guardian profile is not set up. Please contact the administrator.',
+                'children' => [],
+                'events' => [],
+            ]);
+        }
+
         $students = $guardian->students()->with(['user', 'class'])->get();
 
         $childrenData = [];
@@ -217,7 +239,6 @@ class DashboardController extends Controller
             ];
         }
 
-        // Upcoming events (shared for all children, but events are school‑wide)
         $events = Event::where('start_date', '>=', now())
             ->orderBy('start_date')
             ->take(5)

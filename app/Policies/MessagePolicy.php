@@ -9,22 +9,25 @@ class MessagePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('admin') || $user->hasRole('teacher');
+        // Allow all authenticated roles (admin, teacher, student, guardian)
+        return $user->hasRole('admin') || $user->hasRole('teacher') ||
+               $user->hasRole('student') || $user->hasRole('guardian');
     }
 
     public function view(User $user, Message $message): bool
     {
+        // Admin can view any message
         if ($user->hasRole('admin')) return true;
-        if ($user->hasRole('teacher')) {
-            // Teacher can view messages they sent or received
-            return $message->sender_id === $user->id || $message->receiver_id === $user->id;
-        }
-        return false;
+
+        // User can view messages they sent or received
+        return $message->sender_id === $user->id || $message->receiver_id === $user->id;
     }
 
     public function create(User $user): bool
     {
-        return $user->hasRole('admin') || $user->hasRole('teacher');
+        // All authenticated roles can send messages
+        return $user->hasRole('admin') || $user->hasRole('teacher') ||
+               $user->hasRole('student') || $user->hasRole('guardian');
     }
 
     public function update(User $user, Message $message): bool
@@ -34,11 +37,8 @@ class MessagePolicy
 
     public function delete(User $user, Message $message): bool
     {
-        // Teachers can delete their own sent messages (optional)
+        // Users can delete their own sent messages
         if ($user->hasRole('admin')) return true;
-        if ($user->hasRole('teacher')) {
-            return $message->sender_id === $user->id;
-        }
-        return false;
+        return $message->sender_id === $user->id;
     }
 }

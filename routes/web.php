@@ -105,14 +105,14 @@ Route::middleware(['auth', 'verified', 'role:student'])
         // Dashboard
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
 
-        // Student modules (to be implemented)
-        // Route::resource('assignments', StudentAssignmentController::class)->only(['index', 'show', 'store']);
-        // Route::resource('results', StudentResultController::class)->only(['index']);
-        // Route::resource('attendances', StudentAttendanceController::class)->only(['index']);
-        // Route::resource('events', StudentEventController::class)->only(['index']);
-        // Route::resource('messages', StudentMessageController::class);
-        // Route::resource('announcements', StudentAnnouncementController::class)->only(['index', 'show']);
-        // Route::resource('classes', StudentClassController::class)->only(['index']);
+        //Student modules (to be implemented)
+        Route::resource('assignments', StudentAssignmentController::class)->only(['index', 'show', 'store']);
+        Route::resource('results', StudentResultController::class)->only(['index']);
+        Route::resource('attendances', StudentAttendanceController::class)->only(['index']);
+        Route::resource('events', StudentEventController::class)->only(['index']);
+        Route::resource('messages', StudentMessageController::class);
+        Route::resource('announcements', StudentAnnouncementController::class)->only(['index', 'show']);
+        Route::resource('classes', StudentClassController::class)->only(['index']);
     });
 
 // Authentication routes (login, register, etc.)
