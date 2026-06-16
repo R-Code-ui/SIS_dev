@@ -45,7 +45,8 @@ class AssignmentController extends Controller
 
         $assignments = $query->paginate(10)->withQueryString();
 
-        $classes = $teacher->classes()->get(['id', 'name']);
+        // ✅ Fix ambiguous column
+        $classes = $teacher->classes()->select('classes.id', 'classes.name')->get();
 
         return inertia('Teacher/Assignments/Index', [
             'assignments' => $assignments,
@@ -59,7 +60,8 @@ class AssignmentController extends Controller
         $this->authorize('create', Assignment::class);
 
         $teacher = Auth::user()->teacher;
-        $classes = $teacher->classes()->get(['id', 'name']);
+        // ✅ Fix ambiguous column
+        $classes = $teacher->classes()->select('classes.id', 'classes.name')->get();
         $subjects = Subject::whereIn('id', $teacher->getMySubjectIds())->get();
 
         return inertia('Teacher/Assignments/Create', [
@@ -104,7 +106,8 @@ class AssignmentController extends Controller
         $teacher = Auth::user()->teacher;
         if ($assignment->teacher_id !== $teacher->id) abort(403);
 
-        $classes = $teacher->classes()->get(['id', 'name']);
+        // ✅ Fix ambiguous column
+        $classes = $teacher->classes()->select('classes.id', 'classes.name')->get();
         $subjects = Subject::whereIn('id', $teacher->getMySubjectIds())->get();
 
         return inertia('Teacher/Assignments/Edit', [
@@ -133,7 +136,6 @@ class AssignmentController extends Controller
         if (!$teacher->isMyClass($validated['class_id'])) abort(403);
 
         if ($request->hasFile('file')) {
-            // Delete old file if exists
             if ($assignment->file_path) {
                 Storage::disk('public')->delete($assignment->file_path);
             }

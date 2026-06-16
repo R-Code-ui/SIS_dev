@@ -47,7 +47,8 @@ class AttendanceController extends Controller
 
         $attendances = $query->paginate(10)->withQueryString();
 
-        $classes = $teacher->classes()->get(['id', 'name']);
+        // ✅ Fix ambiguous column
+        $classes = $teacher->classes()->select('classes.id', 'classes.name')->get();
 
         return inertia('Teacher/Attendances/Index', [
             'attendances' => $attendances,
@@ -62,9 +63,9 @@ class AttendanceController extends Controller
 
         $teacher = Auth::user()->teacher;
         $myClassIds = $teacher->getMyClassIds();
-        $classes = $teacher->classes()->get(['id', 'name']);
+        // ✅ Fix ambiguous column
+        $classes = $teacher->classes()->select('classes.id', 'classes.name')->get();
 
-        // Default to first class if none selected
         $selectedClass = request('class_id', $myClassIds[0] ?? null);
 
         $students = [];
@@ -120,7 +121,7 @@ class AttendanceController extends Controller
         if (!$teacher->isMyClass($attendance->class_id)) abort(403);
 
         $myClassIds = $teacher->getMyClassIds();
-        $classes = $teacher->classes()->get(['id', 'name']);
+        $classes = $teacher->classes()->select('classes.id', 'classes.name')->get();
         $students = Student::with('user')->where('class_id', $attendance->class_id)->get();
 
         // Get all attendance records for that class on the same date

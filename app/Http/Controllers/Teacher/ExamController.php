@@ -43,7 +43,8 @@ class ExamController extends Controller
 
         $exams = $query->paginate(10)->withQueryString();
 
-        $classes = $teacher->classes()->get(['id', 'name']);
+        // ✅ Fix ambiguous column
+        $classes = $teacher->classes()->select('classes.id', 'classes.name')->get();
 
         return inertia('Teacher/Exams/Index', [
             'exams' => $exams,
@@ -57,7 +58,8 @@ class ExamController extends Controller
         $this->authorize('create', Exam::class);
 
         $teacher = Auth::user()->teacher;
-        $classes = $teacher->classes()->get(['id', 'name']);
+        // ✅ Fix ambiguous column
+        $classes = $teacher->classes()->select('classes.id', 'classes.name')->get();
         $subjects = Subject::whereIn('id', $teacher->getMySubjectIds())->get();
 
         return inertia('Teacher/Exams/Create', [
@@ -94,7 +96,8 @@ class ExamController extends Controller
         $teacher = Auth::user()->teacher;
         if (!$teacher->isMyClass($exam->class_id)) abort(403);
 
-        $classes = $teacher->classes()->get(['id', 'name']);
+        // ✅ Fix ambiguous column
+        $classes = $teacher->classes()->select('classes.id', 'classes.name')->get();
         $subjects = Subject::whereIn('id', $teacher->getMySubjectIds())->get();
 
         return inertia('Teacher/Exams/Edit', [

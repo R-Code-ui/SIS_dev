@@ -44,7 +44,8 @@ class LessonController extends Controller
 
         $lessons = $query->paginate(10)->withQueryString();
 
-        $classes = $teacher->classes()->get(['id', 'name']);
+        // ✅ FIX: qualify column names to avoid ambiguous 'id'
+        $classes = $teacher->classes()->select('classes.id', 'classes.name')->get();
 
         return inertia('Teacher/Lessons/Index', [
             'lessons' => $lessons,
@@ -58,7 +59,8 @@ class LessonController extends Controller
         $this->authorize('create', Lesson::class);
 
         $teacher = Auth::user()->teacher;
-        $classes = $teacher->classes()->get(['id', 'name']);
+        // ✅ FIX: qualify column names
+        $classes = $teacher->classes()->select('classes.id', 'classes.name')->get();
         $subjects = Subject::whereIn('id', $teacher->getMySubjectIds())->get();
 
         return inertia('Teacher/Lessons/Create', [
@@ -101,7 +103,8 @@ class LessonController extends Controller
         $teacher = Auth::user()->teacher;
         if ($lesson->teacher_id !== $teacher->id) abort(403);
 
-        $classes = $teacher->classes()->get(['id', 'name']);
+        // ✅ FIX: qualify column names
+        $classes = $teacher->classes()->select('classes.id', 'classes.name')->get();
         $subjects = Subject::whereIn('id', $teacher->getMySubjectIds())->get();
 
         return inertia('Teacher/Lessons/Edit', [

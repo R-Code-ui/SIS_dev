@@ -97,23 +97,40 @@ Route::middleware(['auth', 'verified', 'role:teacher'])
         Route::resource('announcements', TeacherAnnouncementController::class)->only(['index', 'show']);
     });
 
-// Student routes (protected by auth + role:student)
-Route::middleware(['auth', 'verified', 'role:student'])
-    ->prefix('student')
-    ->name('student.')
-    ->group(function () {
-        // Dashboard
-        Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
+    // Student routes (protected by auth + role:student)
+    Route::middleware(['auth', 'verified', 'role:student'])
+        ->prefix('student')
+        ->name('student.')
+        ->group(function () {
+            // Dashboard
+            Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
 
-        //Student modules (to be implemented)
-        Route::resource('assignments', StudentAssignmentController::class)->only(['index', 'show', 'store']);
-        Route::resource('results', StudentResultController::class)->only(['index']);
-        Route::resource('attendances', StudentAttendanceController::class)->only(['index']);
-        Route::resource('events', StudentEventController::class)->only(['index']);
-        Route::resource('messages', StudentMessageController::class);
-        Route::resource('announcements', StudentAnnouncementController::class)->only(['index', 'show']);
-        Route::resource('classes', StudentClassController::class)->only(['index']);
-    });
+            //Student modules (to be implemented)
+            Route::resource('assignments', StudentAssignmentController::class)->only(['index', 'show', 'store']);
+            Route::resource('results', StudentResultController::class)->only(['index']);
+            Route::resource('attendances', StudentAttendanceController::class)->only(['index']);
+            Route::resource('events', StudentEventController::class)->only(['index']);
+            Route::resource('messages', StudentMessageController::class);
+            Route::resource('announcements', StudentAnnouncementController::class)->only(['index', 'show']);
+            Route::resource('classes', StudentClassController::class)->only(['index']);
+        });
 
-// Authentication routes (login, register, etc.)
+    // Authentication routes (login, register, etc.)
+
+    // Parent routes (protected by auth + role:guardian)
+    Route::middleware(['auth', 'verified', 'role:guardian'])
+        ->prefix('parent')
+        ->name('parent.')
+        ->group(function () {
+            Route::get('/dashboard', [\App\Http\Controllers\Parent\ParentDashboardController::class, 'index'])->name('dashboard');
+
+            // Other parent resource routes will be added later
+            // Route::resource('assignments', \App\Http\Controllers\Parent\AssignmentController::class)->only(['index', 'show']);
+            // Route::resource('results', \App\Http\Controllers\Parent\ResultController::class)->only(['index']);
+            // Route::resource('attendances', \App\Http\Controllers\Parent\AttendanceController::class)->only(['index']);
+            // Route::resource('events', \App\Http\Controllers\Parent\EventController::class)->only(['index']);
+            // Route::resource('messages', \App\Http\Controllers\Parent\MessageController::class);
+            // Route::resource('announcements', \App\Http\Controllers\Parent\AnnouncementController::class)->only(['index', 'show']);
+            // Route::resource('classes', \App\Http\Controllers\Parent\ClassController::class)->only(['index']);
+        });
 require __DIR__.'/auth.php';

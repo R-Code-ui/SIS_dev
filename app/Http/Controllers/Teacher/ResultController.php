@@ -52,12 +52,16 @@ class ResultController extends Controller
                       ->orderBy('users.name', 'desc')
                       ->select('results.*');
                 break;
-            default: $query->latest();
+            default:
+                $query->latest('results.created_at');
         }
 
         $results = $query->paginate(10)->withQueryString();
 
-        $exams = Exam::whereIn('class_id', $myClassIds)->get(['id', 'title']);
+        // ✅ Fix ambiguous column
+        $exams = Exam::whereIn('class_id', $myClassIds)
+            ->select('exams.id', 'exams.title')
+            ->get();
 
         return inertia('Teacher/Results/Index', [
             'results' => $results,
@@ -73,7 +77,7 @@ class ResultController extends Controller
         $teacher = Auth::user()->teacher;
         $myClassIds = $teacher->getMyClassIds();
 
-        $exams = Exam::whereIn('class_id', $myClassIds)->get(['id', 'title']);
+        $exams = Exam::whereIn('class_id', $myClassIds)->select('exams.id', 'exams.title')->get();
         $students = Student::with('user')->whereIn('class_id', $myClassIds)->get();
         $subjects = Subject::whereIn('id', $teacher->getMySubjectIds())->get();
 
@@ -98,7 +102,6 @@ class ResultController extends Controller
             'remarks' => 'nullable|string',
         ]);
 
-        // Verify exam belongs to teacher's class
         $exam = Exam::find($validated['exam_id']);
         if (!$teacher->isMyClass($exam->class_id)) abort(403);
 
@@ -115,7 +118,7 @@ class ResultController extends Controller
         if (!$teacher->isMyClass($exam->class_id)) abort(403);
 
         $myClassIds = $teacher->getMyClassIds();
-        $exams = Exam::whereIn('class_id', $myClassIds)->get(['id', 'title']);
+        $exams = Exam::whereIn('class_id', $myClassIds)->select('exams.id', 'exams.title')->get();
         $students = Student::with('user')->whereIn('class_id', $myClassIds)->get();
         $subjects = Subject::whereIn('id', $teacher->getMySubjectIds())->get();
 
