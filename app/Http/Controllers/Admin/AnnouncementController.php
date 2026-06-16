@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Announcement;
+use App\Models\AnnouncementTarget;
+use App\Models\Classes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Auth;
@@ -53,41 +55,65 @@ class AnnouncementController extends AdminController
         ]);
     }
 
-    // create, store, edit, update, destroy unchanged
     public function create()
     {
         Gate::authorize('create', Announcement::class);
-        return inertia('Admin/Announcements/Create');
+        $roles = ['admin', 'teacher', 'student', 'guardian'];
+        $classes = Classes::all();
+        return inertia('Admin/Announcements/Create', compact('roles', 'classes'));
     }
 
     public function store(Request $request)
     {
         Gate::authorize('create', Announcement::class);
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'expiry_date' => 'nullable|date|after:today',
+            'target_type' => 'required|in:all,role,class',
+            'target_roles' => 'required_if:target_type,role|array|nullable',
+            'target_roles.*' => 'string|in:admin,teacher,student,guardian',
+            'target_class_ids' => 'required_if:target_type,class|array|nullable',
+            'target_class_ids.*' => 'exists:classes,id',
         ]);
+
         $validated['published_by'] = Auth::id();
-        Announcement::create($validated);
+        $announcement = Announcement::create($validated);
+
+        // Save targeting rules
+        $this->saveTargets($announcement, $request);
+
         return redirect()->route('admin.announcements.index')->with('success', 'Announcement created successfully.');
     }
 
     public function edit(Announcement $announcement)
     {
         Gate::authorize('update', $announcement);
-        return inertia('Admin/Announcements/Edit', ['announcement' => $announcement]);
+        $roles = ['admin', 'teacher', 'student', 'guardian'];
+        $classes = Classes::all();
+        $targets = $announcement->targets;
+        return inertia('Admin/Announcements/Edit', compact('announcement', 'roles', 'classes', 'targets'));
     }
 
     public function update(Request $request, Announcement $announcement)
     {
         Gate::authorize('update', $announcement);
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'expiry_date' => 'nullable|date|after:today',
+            'target_type' => 'required|in:all,role,class',
+            'target_roles' => 'required_if:target_type,role|array|nullable',
+            'target_roles.*' => 'string|in:admin,teacher,student,guardian',
+            'target_class_ids' => 'required_if:target_type,class|array|nullable',
+            'target_class_ids.*' => 'exists:classes,id',
         ]);
+
         $announcement->update($validated);
+        $this->saveTargets($announcement, $request);
+
         return redirect()->route('admin.announcements.index')->with('success', 'Announcement updated successfully.');
     }
 
@@ -96,5 +122,36 @@ class AnnouncementController extends AdminController
         Gate::authorize('delete', $announcement);
         $announcement->delete();
         return redirect()->route('admin.announcements.index')->with('success', 'Announcement deleted successfully.');
+    }
+
+    // Helper to save targeting rules
+    private function saveTargets($announcement, $request)
+    {
+        // Remove existing targets
+        $announcement->targets()->delete();
+
+        if ($request->target_type === 'all') {
+            $announcement->targets()->create([
+                'target_type' => 'all',
+                'target_role' => null,
+                'target_class_id' => null,
+            ]);
+        } elseif ($request->target_type === 'role') {
+            foreach ($request->target_roles as $role) {
+                $announcement->targets()->create([
+                    'target_type' => 'role',
+                    'target_role' => $role,
+                    'target_class_id' => null,
+                ]);
+            }
+        } elseif ($request->target_type === 'class') {
+            foreach ($request->target_class_ids as $classId) {
+                $announcement->targets()->create([
+                    'target_type' => 'class',
+                    'target_role' => null,
+                    'target_class_id' => $classId,
+                ]);
+            }
+        }
     }
 }

@@ -4,11 +4,21 @@ import Button from '@/Components/Button';
 import FlashMessage from '@/Components/FlashMessage';
 import { Head, useForm } from '@inertiajs/react';
 
-export default function Edit({ announcement, flash }) {
+export default function Edit({ announcement, roles, classes, targets, flash }) {
+    // Compute initial targeting data from the announcement's targets
+    const initialTargetRoles = targets.filter(t => t.target_type === 'role').map(t => t.target_role);
+    const initialTargetClassIds = targets.filter(t => t.target_type === 'class').map(t => t.target_class_id);
+    const targetType = targets.length === 1 && targets[0].target_type === 'all' ? 'all'
+                        : (initialTargetRoles.length ? 'role'
+                        : (initialTargetClassIds.length ? 'class' : 'all'));
+
     const { data, setData, put, processing, errors } = useForm({
         title: announcement.title,
         content: announcement.content,
         expiry_date: announcement.expiry_date || '',
+        target_type: targetType,
+        target_roles: initialTargetRoles,
+        target_class_ids: initialTargetClassIds,
     });
 
     const handleSubmit = (e) => {
@@ -55,6 +65,50 @@ export default function Edit({ announcement, flash }) {
                                 onChange={e => setData('expiry_date', e.target.value)}
                                 error={errors.expiry_date}
                             />
+
+                            {/* Targeting fields */}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Target Audience</label>
+                                <select
+                                    value={data.target_type}
+                                    onChange={e => setData('target_type', e.target.value)}
+                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                >
+                                    <option value="all">Everyone</option>
+                                    <option value="role">Specific Roles</option>
+                                    <option value="class">Specific Classes</option>
+                                </select>
+                            </div>
+
+                            {data.target_type === 'role' && (
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Roles</label>
+                                    <select
+                                        multiple
+                                        value={data.target_roles}
+                                        onChange={e => setData('target_roles', Array.from(e.target.selectedOptions, o => o.value))}
+                                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                    >
+                                        {roles.map(role => <option key={role} value={role}>{role}</option>)}
+                                    </select>
+                                    <p className="text-xs text-gray-500 mt-1">Hold Ctrl (Cmd) to select multiple</p>
+                                </div>
+                            )}
+
+                            {data.target_type === 'class' && (
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Classes</label>
+                                    <select
+                                        multiple
+                                        value={data.target_class_ids}
+                                        onChange={e => setData('target_class_ids', Array.from(e.target.selectedOptions, o => o.value))}
+                                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                    >
+                                        {classes.map(cls => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
+                                    </select>
+                                    <p className="text-xs text-gray-500 mt-1">Hold Ctrl (Cmd) to select multiple</p>
+                                </div>
+                            )}
 
                             <div className="flex justify-end space-x-2 pt-4">
                                 <Button variant="secondary" onClick={() => window.history.back()} type="button">Cancel</Button>

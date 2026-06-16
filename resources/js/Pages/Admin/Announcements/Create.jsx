@@ -4,11 +4,14 @@ import Button from '@/Components/Button';
 import FlashMessage from '@/Components/FlashMessage';
 import { Head, useForm } from '@inertiajs/react';
 
-export default function Create({ flash }) {
+export default function Create({ roles, classes, flash }) {
     const { data, setData, post, processing, errors } = useForm({
         title: '',
         content: '',
         expiry_date: '',
+        target_type: 'all',
+        target_roles: [],
+        target_class_ids: [],
     });
 
     const handleSubmit = (e) => {
@@ -55,6 +58,50 @@ export default function Create({ flash }) {
                                 onChange={e => setData('expiry_date', e.target.value)}
                                 error={errors.expiry_date}
                             />
+
+                            {/* Targeting fields */}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Target Audience</label>
+                                <select
+                                    value={data.target_type}
+                                    onChange={e => setData('target_type', e.target.value)}
+                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                >
+                                    <option value="all">Everyone</option>
+                                    <option value="role">Specific Roles</option>
+                                    <option value="class">Specific Classes</option>
+                                </select>
+                            </div>
+
+                            {data.target_type === 'role' && (
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Roles</label>
+                                    <select
+                                        multiple
+                                        value={data.target_roles}
+                                        onChange={e => setData('target_roles', Array.from(e.target.selectedOptions, o => o.value))}
+                                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                    >
+                                        {roles.map(role => <option key={role} value={role}>{role}</option>)}
+                                    </select>
+                                    <p className="text-xs text-gray-500 mt-1">Hold Ctrl (Cmd) to select multiple</p>
+                                </div>
+                            )}
+
+                            {data.target_type === 'class' && (
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Classes</label>
+                                    <select
+                                        multiple
+                                        value={data.target_class_ids}
+                                        onChange={e => setData('target_class_ids', Array.from(e.target.selectedOptions, o => o.value))}
+                                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                    >
+                                        {classes.map(cls => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
+                                    </select>
+                                    <p className="text-xs text-gray-500 mt-1">Hold Ctrl (Cmd) to select multiple</p>
+                                </div>
+                            )}
 
                             <div className="flex justify-end space-x-2 pt-4">
                                 <Button variant="secondary" onClick={() => window.history.back()} type="button">Cancel</Button>

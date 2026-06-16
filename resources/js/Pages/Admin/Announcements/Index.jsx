@@ -20,12 +20,27 @@ export default function Index({ announcements, filters = {} }) {
     };
     const handleSearchKeyDown = (e) => e.key === 'Enter' && applyFilters();
 
+    // Helper to format targeting summary
+    const formatTarget = (item) => {
+        if (!item.targets || item.targets.length === 0) return '—';
+        const hasAll = item.targets.some(t => t.target_type === 'all');
+        if (hasAll) return 'Everyone';
+
+        const roles = item.targets.filter(t => t.target_type === 'role').map(t => t.target_role).join(', ');
+        const classes = item.targets.filter(t => t.target_type === 'class').map(t => t.target_class?.name).join(', ');
+        if (roles && classes) return `Roles: ${roles} | Classes: ${classes}`;
+        if (roles) return `Roles: ${roles}`;
+        if (classes) return `Classes: ${classes}`;
+        return '—';
+    };
+
     const columns = [
         { key: 'title', label: 'Title' },
         { key: 'content', label: 'Content', render: (item) => item.content?.substring(0, 80) + (item.content?.length > 80 ? '…' : '') },
         { key: 'expiry_date', label: 'Expiry Date', render: (item) => item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : '—' },
         { key: 'publisher', label: 'Published By', render: (item) => item.publisher?.name || '—' },
         { key: 'created_at', label: 'Published', render: (item) => new Date(item.created_at).toLocaleDateString() },
+        { key: 'target', label: 'Target', render: (item) => formatTarget(item) },
     ];
 
     const handleEdit = (ann) => router.visit(route('admin.announcements.edit', ann.id));

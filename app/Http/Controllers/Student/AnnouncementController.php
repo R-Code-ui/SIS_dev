@@ -5,16 +5,16 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AnnouncementController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Announcement::with('publisher');
+        // Apply targeting scope
+        $query = Announcement::with('publisher')->forUser(Auth::user());
 
-        // Default: show only active (not expired) announcements
         $status = $request->get('status', 'active');
-
         if ($status === 'active') {
             $query->where(function ($q) {
                 $q->whereNull('expiry_date')->orWhere('expiry_date', '>=', now());
@@ -22,9 +22,7 @@ class AnnouncementController extends Controller
         } elseif ($status === 'expired') {
             $query->whereNotNull('expiry_date')->where('expiry_date', '<', now());
         }
-        // 'all' shows everything
 
-        // Search by title or content
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -33,21 +31,12 @@ class AnnouncementController extends Controller
             });
         }
 
-        // Sorting
         $sort = $request->get('sort', 'latest');
         switch ($sort) {
-            case 'title_asc':
-                $query->orderBy('title', 'asc');
-                break;
-            case 'title_desc':
-                $query->orderBy('title', 'desc');
-                break;
-            case 'oldest':
-                $query->orderBy('created_at', 'asc');
-                break;
-            default:
-                $query->latest('created_at'); // newest first
-                break;
+            case 'title_asc': $query->orderBy('title', 'asc'); break;
+            case 'title_desc': $query->orderBy('title', 'desc'); break;
+            case 'oldest': $query->orderBy('created_at', 'asc'); break;
+            default: $query->latest('created_at');
         }
 
         $announcements = $query->paginate(10)->withQueryString();
@@ -64,9 +53,7 @@ class AnnouncementController extends Controller
 
     public function show(Announcement $announcement)
     {
-        // Optional: if you want a single view, but the index with modal or expanded row is enough
-        // For simplicity, we'll just redirect to index or you can implement a show page.
-        // Many systems show full content in a modal. We'll keep it simple: redirect to index.
+        // Optional: you can implement a show page or redirect to index
         return redirect()->route('student.announcements.index');
     }
 }

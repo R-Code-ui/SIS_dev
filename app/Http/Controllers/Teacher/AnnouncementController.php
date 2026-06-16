@@ -16,7 +16,8 @@ class AnnouncementController extends Controller
         $teacher = Auth::user()->teacher;
         if (!$teacher) abort(403, 'Teacher profile not found.');
 
-        $query = Announcement::with('publisher');
+        // Use the scope to filter by targeting
+        $query = Announcement::with('publisher')->forUser(Auth::user());
 
         if ($request->filled('search')) {
             $search = $request->search;
