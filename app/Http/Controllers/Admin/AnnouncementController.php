@@ -8,6 +8,7 @@ use App\Models\Classes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Auth;
+use App\Helpers\ActivityLogger;  // 👈 IMPORTANT: add this line
 
 class AnnouncementController extends AdminController
 {
@@ -84,6 +85,9 @@ class AnnouncementController extends AdminController
         // Save targeting rules
         $this->saveTargets($announcement, $request);
 
+        // 👇 Log the creation
+        ActivityLogger::log('created', $announcement, null, $announcement->toArray());
+
         return redirect()->route('admin.announcements.index')->with('success', 'Announcement created successfully.');
     }
 
@@ -111,8 +115,14 @@ class AnnouncementController extends AdminController
             'target_class_ids.*' => 'exists:classes,id',
         ]);
 
+        // 👇 Capture old values BEFORE update
+        $oldData = $announcement->getOriginal();
+
         $announcement->update($validated);
         $this->saveTargets($announcement, $request);
+
+        // 👇 Log the update
+        ActivityLogger::log('updated', $announcement, $oldData, $announcement->getAttributes());
 
         return redirect()->route('admin.announcements.index')->with('success', 'Announcement updated successfully.');
     }
@@ -120,7 +130,15 @@ class AnnouncementController extends AdminController
     public function destroy(Announcement $announcement)
     {
         Gate::authorize('delete', $announcement);
+
+        // 👇 Capture old values BEFORE deletion
+        $oldData = $announcement->getAttributes();
+
         $announcement->delete();
+
+        // 👇 Log the deletion
+        ActivityLogger::log('deleted', $announcement, $oldData, null);
+
         return redirect()->route('admin.announcements.index')->with('success', 'Announcement deleted successfully.');
     }
 
